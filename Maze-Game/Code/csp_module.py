@@ -5,50 +5,46 @@ class CSPCoinPlacer:
         self.game_state = game_state
         self.num_coins = num_coins
         self.min_dist = min_dist
-        self.empty_cells = self._get_empty_cells()
+        self.empty_cells = self.get_empty_cells()
 
-    def _get_empty_cells(self):
+    def get_empty_cells(self):
         cells = []
         for r in range(self.game_state.rows):
             for c in range(self.game_state.cols):
                 if self.game_state.grid[r][c] == 0:
-                    # Exclude start/end positions of agents
                     pos = (r, c)
-                    if pos != self.game_state.player_pos and \
-                       pos != self.game_state.ai_pos and \
-                       pos != self.game_state.monster_pos:
+                    # dont place on players
+                    if pos != self.game_state.player_pos and pos != self.game_state.ai_pos and pos != self.game_state.monster_pos:
                         cells.append(pos)
         return cells
 
-    def is_consistent(self, pos, current_coins):
-        # Distance constraint
+    def check_constraints(self, pos, current_coins):
+        # check if it is far enough from other coins
         for coin in current_coins:
             dist = abs(pos[0] - coin[0]) + abs(pos[1] - coin[1])
             if dist < self.min_dist:
                 return False
-        
-        # Quadrant constraint (optional but helps "spread")
-        # Let's just stick to distance for now as it's easier to satisfy
         return True
 
     def place_coins(self):
         random.shuffle(self.empty_cells)
         coins = []
         
-        def backtrack(index):
+        def solve(index):
             if len(coins) == self.num_coins:
                 return True
             
             for i in range(index, len(self.empty_cells)):
                 pos = self.empty_cells[i]
-                if self.is_consistent(pos, coins):
+                if self.check_constraints(pos, coins):
                     coins.append(pos)
-                    if backtrack(i + 1):
+                    # recursive call
+                    if solve(i + 1):
                         return True
-                    coins.pop()
+                    coins.pop() # backtrack
             return False
 
-        if backtrack(0):
+        if solve(0):
             self.game_state.coins = set(coins)
             return True
         return False
